@@ -1,2 +1,3 @@
-# rock-runner-challenge
-Publicación de prueba de Rock Runner Challenge. Datos y respuestas permanecen en el backend privado.
+# Rock Runner Challenge
+
+Publicación de prueba. El registro real permanece cerrado. Los datos, el panel administrativo y el banco de respuestas se mantienen en el backend privado.
