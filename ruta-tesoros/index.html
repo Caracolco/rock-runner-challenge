@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>La Ruta de los Tesoros Escondidos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0f1747">
+<meta name="description" content="Demo jugable en 3D. Mundo 1: Carnaval de Barranquilla.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Shrikhand&display=swap">
+<style>
+/* Layout: el juego 3D ocupa toda la pantalla; la interfaz son carteles de verbena pintados a mano
+   (rótulos de picó) que flotan sobre la escena y se apartan durante el juego. */
+:root{
+  --noche:#0f1747;      /* azul de noche de carnaval: fondo de carteles */
+  --noche-2:#1a2670;
+  --oro:#ffc915;        /* amarillo carnaval */
+  --fucsia:#e6197d;
+  --turquesa:#18c3b8;
+  --rojo:#e5322d;
+  --verde:#1f9d55;
+  --papel:#fff7ea;      /* texto principal sobre azul */
+  --papel-2:#c9cff5;    /* texto secundario teñido de azul */
+  --tinta:#0b1038;
+  --display:"Shrikhand","Cooper Black","Georgia",serif;
+  --texto:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --r:14px;
+  --bunting:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='18'%3E%3Cpath d='M0 0h12L6 14z' fill='%23e5322d'/%3E%3Cpath d='M12 0h12l-6 14z' fill='%23ffc915'/%3E%3Cpath d='M24 0h12l-6 14z' fill='%231f9d55'/%3E%3Cpath d='M36 0h12l-6 14z' fill='%2318c3b8'/%3E%3C/svg%3E");
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--tinta);color:var(--papel);font-family:var(--texto);
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;touch-action:none;-webkit-user-select:none;user-select:none}
+::selection{background:var(--fucsia);color:var(--papel)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--oro);outline-offset:3px;border-radius:10px}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block}
+[hidden]{display:none!important}
+
+/* ---------- Botones ---------- */
+.btn{appearance:none;border:0;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  min-height:48px;padding:.7em 1.4em;border-radius:999px;font-weight:800;font-size:1.05rem;letter-spacing:.01em;
+  background:var(--oro);color:var(--tinta);box-shadow:0 6px 16px rgba(5,8,30,.45);
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.3),box-shadow .2s,background .2s}
+.btn:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 10px 22px rgba(5,8,30,.5)}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn svg{width:1.15em;height:1.15em}
+.btn.alt{background:transparent;color:var(--papel);box-shadow:inset 0 0 0 2px rgba(255,247,234,.35)}
+.btn.alt:hover{box-shadow:inset 0 0 0 2px var(--papel)}
+.btn.sm{min-height:40px;font-size:.92rem;padding:.5em 1.05em}
+.row{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center}
+
+/* ---------- Pantallas ---------- */
+.screen{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.screen.dim{background:radial-gradient(120% 90% at 50% 40%,rgba(15,23,71,.35),rgba(11,16,56,.82))}
+
+/* Título */
+#title{background:linear-gradient(90deg,rgba(11,16,56,.92) 0%,rgba(11,16,56,.7) 42%,rgba(11,16,56,.1) 75%)}
+.title-wrap{width:min(1100px,100%);height:100%;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(12px,3vw,40px);align-items:center}
+.title-copy{display:flex;flex-direction:column;gap:clamp(10px,2.2vh,20px);min-width:0}
+.logo{font-family:var(--display);font-weight:400;margin:0;line-height:.92;font-size:clamp(2rem,6.4vw,4.6rem);
+  color:var(--oro);text-wrap:balance;letter-spacing:-.01em;
+  -webkit-text-stroke:2px var(--tinta);paint-order:stroke fill;
+  text-shadow:0 3px 0 var(--fucsia),0 6px 0 var(--tinta),0 14px 24px rgba(0,0,0,.45)}
+.logo span{display:block;color:var(--papel);font-size:.52em;line-height:1.05;margin-top:.12em;text-shadow:0 3px 0 var(--turquesa),0 6px 0 var(--tinta),0 12px 20px rgba(0,0,0,.4)}
+.lede{margin:0;font-size:clamp(.95rem,1.7vw,1.15rem);line-height:1.45;color:var(--papel-2);max-width:44ch}
+.lede strong{color:var(--papel)}
+.sponsor{display:flex;align-items:center;gap:.7rem;font-size:.82rem;color:var(--papel-2)}
+.brandbox{display:inline-grid;place-items:center;min-width:92px;height:34px;padding:0 .7em;border-radius:8px;border:2px dashed rgba(255,201,21,.7);
+  color:var(--oro);font-weight:800;letter-spacing:.08em;font-size:.78rem;text-transform:uppercase;background:rgba(255,201,21,.06)}
+.hint-rotate{display:none;align-items:center;gap:.45rem;font-size:.8rem;color:var(--papel-2)}
+.hint-rotate svg{width:20px;height:20px}
+@media (orientation:portrait) and (pointer:coarse){.hint-rotate{display:flex}}
+
+/* Mapa */
+.map{position:relative;min-width:0;height:min(88vh,560px);display:flex;align-items:center;justify-content:center}
+.map svg{height:100%;max-width:100%;overflow:visible;filter:drop-shadow(0 18px 30px rgba(0,0,0,.4))}
+.rmap .land{fill:#20307f;stroke:rgba(255,247,234,.55);stroke-width:.5}
+.rmap .sea{font-family:var(--texto);font-style:italic;font-size:4px;fill:rgba(201,207,245,.65);letter-spacing:.06em}
+.rmap .route{fill:none;stroke:var(--oro);stroke-width:1.1;stroke-dasharray:.1 2.6;stroke-linecap:round;animation:march 1.6s linear infinite}
+.rmap .route.locked{stroke:rgba(201,207,245,.55)}
+@keyframes march{to{stroke-dashoffset:-2.7}}
+.rmap .city text{font-family:var(--texto);font-weight:800;font-size:5.2px;fill:var(--papel);paint-order:stroke;stroke:var(--tinta);stroke-width:1.1px}
+.rmap .city .sub{font-weight:600;font-size:3.8px;fill:var(--papel-2)}
+.rmap .city.locked text{fill:#aab2e6}
+.rmap .pin{fill:var(--fucsia);stroke:var(--papel);stroke-width:.7}
+.rmap .pin.done{fill:var(--verde)}
+.rmap .pin.next{fill:var(--oro)}
+.rmap .locked .pin{fill:#3a4697;stroke:#aab2e6}
+.rmap .pulse{fill:none;stroke:var(--oro);stroke-width:.6;transform-box:fill-box;transform-origin:center;animation:pulse 1.8s cubic-bezier(.2,.7,.3,1) infinite}
+@keyframes pulse{from{transform:scale(.6);opacity:1}to{transform:scale(2.6);opacity:0}}
+
+/* ---------- Carteles (tarjetas) ---------- */
+.card{position:relative;width:min(560px,100%);max-height:100%;overflow:auto;border-radius:var(--r);
+  background:linear-gradient(180deg,var(--noche-2),var(--noche));box-shadow:0 24px 60px rgba(0,0,0,.5);
+  padding:clamp(28px,5vh,40px) clamp(18px,3.4vw,32px) clamp(16px,3vh,26px);display:flex;flex-direction:column;gap:clamp(10px,1.8vh,16px);
+  animation:cardIn .45s cubic-bezier(.16,1,.3,1) both;scrollbar-width:thin;scrollbar-color:var(--oro) transparent}
+@keyframes cardIn{from{transform:translateY(14px) scale(.97);filter:blur(4px)}to{transform:none;filter:none}}
+.card::before{content:"";position:absolute;left:0;right:0;top:0;height:18px;border-radius:var(--r) var(--r) 0 0;background:var(--bunting) top left/48px 18px repeat-x}
+.card h2{font-family:var(--display);font-weight:400;margin:0;font-size:clamp(1.7rem,4.2vw,2.5rem);line-height:1;color:var(--oro);text-wrap:balance;
+  -webkit-text-stroke:1.5px var(--tinta);paint-order:stroke fill;text-shadow:0 3px 0 var(--fucsia),0 8px 16px rgba(0,0,0,.35)}
+.card p{margin:0;line-height:1.5;color:var(--papel-2);max-width:60ch}
+.card p strong{color:var(--papel)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem}
+.fact{display:flex;align-items:center;gap:.6rem;padding:.6rem .75rem;border-radius:12px;background:rgba(255,247,234,.07);font-size:.92rem;min-width:0}
+.fact svg{flex:none;width:28px;height:28px}
+.fact b{display:block;color:var(--papel);font-weight:800}
+.fact small{display:block;color:var(--papel-2);font-size:.78rem}
+.sponsor-strip{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.55rem .75rem;border-radius:12px;
+  background:rgba(255,201,21,.08);font-size:.85rem;color:var(--papel-2);flex-wrap:wrap}
+.controls{display:flex;gap:1rem;flex-wrap:wrap;font-size:.84rem;color:var(--papel-2)}
+.controls kbd{font-family:var(--texto);font-weight:800;font-size:.78rem;padding:.15em .5em;border-radius:6px;background:rgba(255,247,234,.12);color:var(--papel)}
+.card-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:.2rem}
+
+/* Pasaporte */
+.passport{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.stamp{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;border:2px dashed rgba(201,207,245,.35);color:rgba(201,207,245,.35);flex:none}
+.stamp svg{width:34px;height:34px}
+.stamp.on{border:3px solid var(--oro);color:var(--oro);background:rgba(255,201,21,.1);transform:rotate(-8deg)}
+.stamp.new{animation:stampIn .6s cubic-bezier(.2,1.6,.4,1) .25s both}
+@keyframes stampIn{from{transform:scale(2.4) rotate(-30deg);opacity:0}to{transform:scale(1) rotate(-8deg);opacity:1}}
+.passport-label{font-size:.8rem;color:var(--papel-2);line-height:1.35}
+
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;
+  padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+.hud-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:10px}
+.hud-left{display:flex;align-items:center;gap:10px;min-width:0}
+.iconbtn{pointer-events:auto;appearance:none;border:0;cursor:pointer;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(11,16,56,.62);color:var(--papel);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);flex:none}
+.iconbtn svg{width:22px;height:22px}
+.lvl{min-width:0;line-height:1.1;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.lvl b{display:block;font-family:var(--display);font-weight:400;font-size:1.05rem;color:var(--oro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lvl small{font-size:.74rem;color:var(--papel)}
+.timer{justify-self:center;font-weight:800;font-size:clamp(1.6rem,4vw,2.3rem);font-variant-numeric:tabular-nums;line-height:1;
+  padding:.18em .55em;border-radius:14px;background:rgba(11,16,56,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;gap:.3em}
+.timer svg{width:.7em;height:.7em;color:var(--oro)}
+.timer.low{color:#ff5a52;animation:beat .6s ease-in-out infinite}
+@keyframes beat{50%{transform:scale(1.08)}}
+.slots{justify-self:end;display:flex;gap:5px;padding:6px 8px;border-radius:14px;background:rgba(11,16,56,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.slot{width:24px;height:24px;display:grid;place-items:center;color:rgba(255,247,234,.28)}
+.slot svg{width:22px;height:22px}
+.slot.on{color:var(--oro);animation:pop .45s cubic-bezier(.2,1.8,.4,1)}
+@keyframes pop{from{transform:scale(1.9)}to{transform:scale(1)}}
+.toast{position:fixed;left:50%;top:calc(max(10px,env(safe-area-inset-top)) + 64px);transform:translateX(-50%);z-index:15;pointer-events:none;
+  max-width:min(90vw,520px);text-align:center;padding:.6em 1.1em;border-radius:14px;background:rgba(11,16,56,.8);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  font-weight:800;font-size:1rem;line-height:1.3;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.16,1,.3,1)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(4px)}
+.toast small{display:block;font-weight:600;font-size:.8rem;color:var(--papel-2)}
+.keys-hint{position:fixed;left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:9;pointer-events:none;
+  font-size:.82rem;color:var(--papel);background:rgba(11,16,56,.55);padding:.45em .9em;border-radius:999px;transition:opacity .6s;white-space:nowrap}
+.keys-hint kbd{font-family:var(--texto);font-weight:800;padding:.05em .4em;border-radius:5px;background:rgba(255,247,234,.15)}
+
+/* ---------- Controles táctiles ---------- */
+#touch{position:fixed;inset:0;z-index:8;touch-action:none}
+.stick{position:fixed;width:124px;height:124px;margin:-62px 0 0 -62px;border-radius:50%;background:rgba(11,16,56,.35);
+  box-shadow:inset 0 0 0 3px rgba(255,247,234,.35);pointer-events:none;transition:opacity .2s}
+.stick.idle{opacity:.55}
+.knob{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:var(--papel);opacity:.85;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.jump{position:fixed;right:max(22px,calc(env(safe-area-inset-right) + 14px));bottom:max(22px,calc(env(safe-area-inset-bottom) + 14px));width:92px;height:92px;border-radius:50%;
+  display:grid;place-items:center;background:var(--fucsia);color:var(--papel);box-shadow:0 8px 20px rgba(5,8,30,.45),inset 0 -5px 0 rgba(0,0,0,.2);pointer-events:none;transition:transform .08s}
+.jump svg{width:40px;height:40px}
+.jump.on{transform:scale(.9)}
+.touch-label{position:fixed;font-size:.72rem;color:rgba(255,247,234,.75);pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+
+/* ---------- Final ---------- */
+#end{justify-content:flex-start;background:linear-gradient(90deg,rgba(11,16,56,.95) 0%,rgba(11,16,56,.86) 55%,rgba(11,16,56,0) 85%)}
+.end-panel{width:min(920px,76vw);max-height:100%;overflow:auto;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px 30px;align-items:start;
+  animation:cardIn .6s cubic-bezier(.16,1,.3,1) both;scrollbar-width:thin;scrollbar-color:var(--oro) transparent;padding-right:4px}
+.end-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.end-panel h2{font-family:var(--display);font-weight:400;margin:0;font-size:clamp(1.8rem,4.2vw,3rem);line-height:.98;color:var(--oro);text-wrap:balance;
+  -webkit-text-stroke:1.5px var(--tinta);paint-order:stroke fill;text-shadow:0 3px 0 var(--fucsia),0 8px 16px rgba(0,0,0,.35)}
+.end-panel p{margin:0;line-height:1.5;color:var(--papel-2)}
+.end-panel p strong{color:var(--papel)}
+.end-map{height:200px;display:flex;justify-content:center}
+.end-map svg{height:100%;overflow:visible}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+.stat{padding:.55rem .7rem;border-radius:12px;background:rgba(255,247,234,.07)}
+.stat b{display:block;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--papel)}
+.stat small{font-size:.74rem;color:var(--papel-2);line-height:1.2;display:block}
+.note{font-size:.76rem;color:var(--papel-2)}
+
+/* ---------- Carga ---------- */
+#loading{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:var(--tinta);transition:opacity .6s}
+#loading.out{opacity:0;pointer-events:none}
+.loader{display:flex;flex-direction:column;align-items:center;gap:14px;font-weight:600;color:var(--papel-2)}
+.loader .flags{display:flex;gap:6px}
+.loader .flags i{width:16px;height:20px;clip-path:polygon(0 0,100% 0,50% 100%);animation:wave 1s ease-in-out infinite}
+.loader .flags i:nth-child(1){background:var(--rojo)}
+.loader .flags i:nth-child(2){background:var(--oro);animation-delay:.1s}
+.loader .flags i:nth-child(3){background:var(--verde);animation-delay:.2s}
+.loader .flags i:nth-child(4){background:var(--fucsia);animation-delay:.3s}
+.loader .flags i:nth-child(5){background:var(--turquesa);animation-delay:.4s}
+@keyframes wave{50%{transform:translateY(-6px) rotate(8deg)}}
+.flash{position:fixed;inset:0;z-index:12;pointer-events:none;opacity:0;background:#fff}
+
+/* ---------- Adaptación ---------- */
+@media (max-height:500px){
+  .map{height:92vh}
+  .logo{font-size:clamp(1.7rem,5.4vw,3.2rem)}
+  .card{padding-top:26px}
+  .stamp{width:50px;height:50px}.stamp svg{width:28px;height:28px}
+  .end-map{display:none}
+  .end-panel{width:100%;gap:12px 24px}
+  #end{background:linear-gradient(90deg,rgba(11,16,56,.95) 0%,rgba(11,16,56,.88) 70%,rgba(11,16,56,.6) 100%)}
+  .end-panel h2{font-size:clamp(1.6rem,4vw,2.2rem)}
+  .end-panel p{font-size:.88rem;line-height:1.4}
+  .stat b{font-size:1.05rem}
+}
+@media (orientation:portrait){
+  #title{background:linear-gradient(0deg,rgba(11,16,56,.95) 0%,rgba(11,16,56,.75) 55%,rgba(11,16,56,.25) 100%)}
+  .title-wrap{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:end}
+  .map{height:auto;min-height:0;max-height:44vh;order:-1}
+  .map svg{height:44vh}
+  #end{align-items:flex-end;background:linear-gradient(0deg,rgba(11,16,56,.96) 0%,rgba(11,16,56,.86) 60%,rgba(11,16,56,.1) 100%)}
+  .end-panel{width:100%;max-height:82vh;grid-template-columns:minmax(0,1fr)}
+  .end-map{height:130px}
+  .lvl small{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Escena 3D del Carnaval de Barranquilla"></canvas>
+
+<div id="loading"><div class="loader"><div class="flags"><i></i><i></i><i></i><i></i><i></i></div><span id="loadingText">Armando la verbena…</span></div></div>
+
+<!-- Título -->
+<section id="title" class="screen" hidden>
+  <div class="title-wrap">
+    <div class="title-copy">
+      <h1 class="logo">La Ruta de los Tesoros <span>Escondidos</span></h1>
+      <p class="lede"><strong>Mundo 1: Carnaval de Barranquilla.</strong> Salta entre tarimas, tambores y carrozas, reúne las piezas antes de que se acabe el tiempo y libera tres tesoros para encender la fiesta.</p>
+      <div class="row">
+        <button class="btn" id="playBtn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>Jugar</button>
+        <span class="hint-rotate"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2"/><path d="M20.5 9a8.5 8.5 0 0 1-3 7"/><path d="m20.5 16-3 0 0-3"/></svg>Se juega mejor en horizontal</span>
+      </div>
+      <div class="sponsor">Pasaporte de viaje presentado por <span class="brandbox">Tu marca</span></div>
+    </div>
+    <div class="map" id="titleMap"></div>
+  </div>
+</section>
+
+<!-- Tarjetas de nivel / pausa / fallo -->
+<section id="cardScreen" class="screen dim" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></section>
+
+<!-- Final -->
+<section id="end" class="screen" hidden><div class="end-panel" id="endPanel"></div></section>
+
+<!-- HUD -->
+<div id="hud" hidden>
+  <div class="hud-top">
+    <div class="hud-left">
+      <button class="iconbtn" id="pauseBtn" aria-label="Pausa"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg></button>
+      <div class="lvl"><b id="lvlName">Encuentra el ritmo</b><small id="lvlSub">Carnaval de Barranquilla · 1/3</small></div>
+    </div>
+    <div class="timer" id="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></svg><span id="timerTxt">1:30</span></div>
+    <div class="slots" id="slots" aria-label="Piezas reunidas"></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="keys-hint" id="keysHint" hidden><kbd>WASD</kbd> o <kbd>flechas</kbd> para moverte · <kbd>Espacio</kbd> para saltar · <kbd>P</kbd> pausa</div>
+
+<div id="touch" hidden>
+  <div class="stick idle" id="stick"><div class="knob" id="knob"></div></div>
+  <div class="jump" id="jumpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 14l7-7 7 7"/><path d="M12 7v12"/></svg></div>
+</div>
+<div class="flash" id="flash"></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module" src="./game.js"></script>
+</body>
+</html>
